@@ -1,3 +1,7 @@
+app = Flask(__name__)
+
+@app.route('/', methods=["GET"])
+
 def hello_world():
  prefix_google = """
  <!-- Google tag (gtag.js) -->
@@ -7,7 +11,7 @@ src="https://www.googletagmanager.com/gtag/js?id=G-3SCJG24T32"></script>
  window.dataLayer = window.dataLayer || [];
  function gtag(){dataLayer.push(arguments);}
  gtag('js', new Date());
- gtag('config', 'G-3SCJG24T32');
+ gtag('config', ' G-3SCJG24T32');
 </script>
  """
  return prefix_google + "Hello World"
