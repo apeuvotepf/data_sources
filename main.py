@@ -5,7 +5,6 @@ from io import StringIO
 
 app = Flask(__name__)
 
-
 # Create a stream-like object using StringIO
 stream = StringIO()
 
@@ -36,7 +35,7 @@ def logger():
     app.logger.warning('A warning occurred !!')
     log_messages = stream_handler.stream.getvalue()
     print(log_messages) # it can be seen on Deta 
-    return log_messages
+    return render_template('logger.html', log_messages=log_messages)
 
 
 if __name__=="__main__":
