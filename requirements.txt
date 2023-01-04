@@ -1,3 +1,5 @@
 flask
 requests
-dotenv
+oauth2client
+pandas
+pytrends
