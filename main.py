@@ -7,6 +7,8 @@ from pytrends.request import TrendReq
 import pandas as pd
 from datetime import datetime
 import random
+import time
+from collections import Counter
 
 app = Flask(__name__)
 
@@ -60,6 +62,9 @@ def cookies():
     return req.text
 
 
+
+################# GOOGLE TREND ################################
+
 @app.route('/trends', methods=['GET', 'POST'])
 def trends():
     if request.method == 'POST':
@@ -83,7 +88,6 @@ def trends():
         # Convert the trend data to a Pandas DataFrame
         dates = [datetime.fromtimestamp(int(date/1e9)).date().isoformat() for date in trend_data.index.values.tolist()]
 
-        # Convert the dataframe to a list of dictionaries for the chart data
         params = {'type': 'line', 
                 'data':{
                     'labels': dates,
@@ -91,17 +95,18 @@ def trends():
                 },
                 'options': {
                     "title": {
-                    "text": 'My chart'
-                },
-                "scales": {
-                    "yAxes": [{
-                        "ticks": {
-                            "beginAtZero": 'true'
-                        }
-                    }]
-                }
+                        "text": 'My chart'
+                        },
+                    "scales": {
+                        "yAxes": [{
+                            "ticks": {
+                                "beginAtZero": 'true'
+                            }
+                        }]
+                    }
                 }}
 
+        # create datasets for each keyword
         for column in trend_data.columns:
             params['data']['datasets'].append({'label': column, 
                                             'data': trend_data[column].values.tolist(),
@@ -128,13 +133,128 @@ def trends():
             </body>
         </html>
         """
-        
+
         return template
     else:
         # Render the trends form template
         return render_template('trends_form.html')
 
 
+################# EXECUTION TIME ################################
+
+def log_execution_time(func):
+    def wrapper(*args, **kwargs):
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        execution_time = end_time - start_time
+        print(f"Execution time: {execution_time} seconds")
+        return result
+    return wrapper
+
+@log_execution_time
+def count_words_dict(text):
+    word_counts = {}
+    for word in text.split():
+        if word in word_counts:
+            word_counts[word] += 1
+        else:
+            word_counts[word] = 1
+
+@log_execution_time
+def count_words_counter(text):
+    Counter(text.split())
+
+@app.route('/execution_time', methods=['GET', 'POST'])
+def execution_time():
+    # Read in the text file
+    with open('shakespeare.txt', 'r') as f:
+        text = f.read()
+    
+    dict_execution_times = []
+    counter_execution_times = []
+    for i in range(1):
+        start_time_dict = time.time()
+        word_count_dict = count_words_dict(text)
+        end_time_dict = time.time()
+        word_count_counter = count_words_counter(text)
+        end_time_counter = time.time()
+        dict_execution_times.append(end_time_dict - start_time_dict)
+        counter_execution_times.append(end_time_counter - end_time_dict)
+    
+
+    # Calculate the mean and variance of the execution times
+    dict_mean_time = sum(dict_execution_times) / len(dict_execution_times)
+    dict_variance = sum((x - dict_mean_time) ** 2 for x in dict_execution_times) / len(dict_execution_times)
+
+    counter_mean_time = sum(counter_execution_times) / len(counter_execution_times)
+    counter_variance = sum((x - counter_mean_time) ** 2 for x in counter_execution_times) / len(counter_execution_times)
+    
+
+    params_mean = {'type': 'line', 
+                'data':{
+                    # 'labels': ['Mean using a dictionary' 'Mean using the Counter function'],
+                    'datasets':[
+                        {'label': 'Mean using a dictionary', 
+                        'data': [dict_mean_time],
+                        "backgroundColor": "red",
+                        },
+                        {'label': 'Mean using the Counter function', 
+                        'data': [counter_mean_time],
+                        "backgroundColor": "blue",
+                        }
+                    ]
+                },
+                'options': {
+                    "title": {
+                        "text": 'Mean'
+                        },
+                }
+            }
+
+    params_variance = {'type': 'line', 
+                'data':{
+                    # 'labels': ['Variance using a dictionary' 'Variance using the Counter function'],
+                    'datasets':[
+                        {'label': 'Variance using a dictionary', 
+                        'data': [dict_variance],
+                        "backgroundColor": "red",
+                        },
+                        {'label': 'Variance using the Counter function', 
+                        'data': [counter_variance],
+                        "backgroundColor": "blue",
+                        }
+                    ]
+                },
+                'options': {
+                    "title": {
+                        "text": 'Variance'
+                        },
+                }
+            }
+
+    template = f"""  
+        <html>
+            <head>
+                <title>Execution time</title>
+            </head>
+            <body>
+                <h1>Execution time for two different methods</h1>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+                <div><canvas id="myChart" width="25" height="25"></canvas></div>
+                <div><script>
+                    var ctx = document.getElementById('myChart');
+                    new Chart(ctx, {params_mean});
+                </script></div>
+
+                <div><script>
+                    var ctx = document.getElementById('myChart');
+                    new Chart(ctx, {params_variance});
+                </script></div>
+            </body>
+        </html>
+        """
+    return template
 
 if __name__=="__main__":
     app.run(debug=True)
