@@ -173,7 +173,7 @@ def execution_time():
     
     dict_execution_times = []
     counter_execution_times = []
-    for i in range(1):
+    for i in range(100):
         start_time_dict = time.time()
         word_count_dict = count_words_dict(text)
         end_time_dict = time.time()
